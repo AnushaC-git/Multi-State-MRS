@@ -1,0 +1,618 @@
+##### Simulation Code for Covid #####
+
+rm(list=ls())
+library(invgamma)
+library(MCMCpack)
+library(AR)
+library(MASS)
+library(gamlss.dist)
+library(ramify)
+library(glogis)
+library(HDInterval)
+library(coda)
+
+
+Repli=500
+tot=100000   # no. of iteration in Gibbs
+
+
+##########  Parameter Specification ##########
+
+N=c(192,1279,679,237,1044,994,2992,244,345,293,136,329,248,425,1944,100)
+
+U=length(N)  # no of states
+
+alpha01=0.00005   
+alpha02=0.05232
+alpha03=0.00065
+
+
+delta01=0.66912
+delta02=0.67208
+delta03=1.17339
+
+
+lambda=array(0,3)
+lambda[1]=delta01/100
+lambda[2]=delta02/100
+lambda[3]=delta03/100
+
+gamma=array(0,3) 
+gamma[1]=delta01*lambda[1]   # to maintain the prior mean as delta_1
+gamma[2]=delta02*lambda[2]
+gamma[3]=delta03*lambda[3]
+
+a_phi=1 # hyper parameter for phi
+b_phi=1
+
+TP=c(571929,637629,1487470,459072,811662,1559605,245102,153596,293073,284288,182359,463527,141398,140030,300157,204319)   # True population of Females(15-49)
+
+
+#####################
+
+t_1=rglogis(10000, location = 0, scale = 1, shape =delta01)
+t_2=rglogis(10000, location = 0, scale = 1, shape =delta02)
+t_3=rglogis(10000, location = 0, scale = 1, shape =delta03)
+
+p1=(1+exp(-t_1))^(-1)
+mean(p1)    
+
+p2=(1+exp(-t_2))^(-1)
+mean(p2)
+
+p3=(1+exp(-t_3))^(-1)
+mean(p3)
+
+########################
+
+d1=0.5
+d2=0.5
+d3=0.5
+d4=0.5
+
+x_111_array=array(NA,U)
+x_110_array=array(NA,U)
+x_101_array=array(NA,U)
+x_011_array=array(NA,U)
+x_100_array=array(NA,U)   
+x_010_array=array(NA,U)
+x_001_array=array(NA,U)
+
+N_repli_mean_estimates=array(NA,dim = c(U,Repli))
+N_repli_median_estimates=array(NA,dim = c(U,Repli))
+
+CI_hpd_N_1=array(NA,dim = c(U,Repli))
+CI_hpd_N_2=array(NA,dim = c(U,Repli))
+CI_hpd_N_length=array(NA,dim = c(U,Repli))
+
+CI_quant_N_1=array(NA,dim = c(U,Repli))
+CI_quant_N_2=array(NA,dim = c(U,Repli))
+CI_quant_N_length=array(NA,dim = c(U,Repli))
+
+N_post_mean=array(NA,U)
+N_post_sd_mean_estimates=array(NA,U)
+rmse_N_hat_mean_estimates=array(NA,U)
+
+N_post_median=array(NA,U)
+N_post_sd_median_estimates=array(NA,U)
+MD_N_hat_median_estimates=array(NA,U)
+
+
+coverage_hpd=array(NA,U)
+coverage_quant=array(NA,U)
+
+LCL_hpd_N_hat=array(NA,U)
+UCL_hpd_N_hat=array(NA,U)
+
+LCL_quant_N_hat=array(NA,U)
+UCL_quant_N_hat=array(NA,U)
+
+
+alpha1=array(NA,Repli)
+alpha2=array(NA,Repli)
+alpha3=array(NA,Repli)
+alpha_ind=array(NA,Repli)
+
+alpha_1=array(NA,c(Repli,tot))
+alpha_2=array(NA,c(Repli,tot))
+alpha_3=array(NA,c(Repli,tot))
+alpha=array(NA,c(Repli,tot))
+
+delta1=array(NA,Repli)
+delta2=array(NA,Repli)
+delta3=array(NA,Repli)
+
+delta_1=array(NA,c(Repli,tot))
+delta_2=array(NA,c(Repli,tot))
+delta_3=array(NA,c(Repli,tot))
+
+
+N_estimate_repli=array(NA,c(Repli,tot))
+
+beta=array(0.5,4) # beta parameters are 0.5 refer Jeffrey's Dirichlet prior
+
+
+
+###  Data Generation ###########
+
+for(r in 1:Repli){
+  
+  for(s in 1:U){
+    
+    b_1=rglogis(1, location = 0, scale = 1, shape =delta01)
+    p_1=(1+exp(-(b_1)))^(-1)
+    
+    b_2=rglogis(1, location = 0, scale = 1, shape =delta02)
+    p_2=(1+exp(-(b_2)))^(-1)
+    
+    b_3=rglogis(1, location = 0, scale = 1, shape =delta03)
+    p_3=(1+exp(-(b_3)))^(-1)
+    
+    D=array(NA,dim=c(N[s],3))
+    
+    for(j in 1:N[s]){
+      
+      
+      u=runif(1,0,1)
+      
+      if(u<alpha01){
+        Y=rbinom(1,1,p_1)
+        D[j,]=c(Y,(1-Y),rbinom(1,1,p_3)) 
+      }
+      
+      else if(alpha01<= u && u<alpha01+alpha02){
+        Z=rbinom(1,1,p_2)
+        D[j,]=c(rbinom(1,1,p_1),Z,(1-Z))     
+      }
+      
+      else if(alpha01+alpha02<= u && u<alpha01+alpha02+alpha03){
+        W=rbinom(1,1,p_1)
+        D[j,]=c(W,rbinom(1,1,p_2),(1-W))     
+      }
+      
+      else{D[j,]=c(rbinom(1,1,p_1),rbinom(1,1,p_2),rbinom(1,1,p_3))}
+          
+      
+      
+    } # end of 'j' loop
+
+      x_111_array[s]=sum(D[,1]*D[,2]*D[,3])
+      x_110_array[s]=sum(D[,1]*D[,2]*(1-D[,3]))
+      x_101_array[s]=sum(D[,1]*(1-D[,2])*D[,3])
+      x_011_array[s]=sum((1-D[,1])*D[,2]*D[,3])
+      x_100_array[s]=sum(D[,1]*(1-D[,2])*(1-D[,3]))
+      x_010_array[s]=sum((1-D[,1])*D[,2]*(1-D[,3]))
+      x_001_array[s]=sum((1-D[,1])*(1-D[,2])*D[,3])
+    
+  } # end of s loop
+  
+  ########## Bayesian estimate of TBM-H ######################################
+  
+  str=function(x) {
+    x*log(x)-x 
+  }
+  
+  ######## Initial Value ##############################
+  
+  b1=array(NA,dim = c(U,tot))
+  b2=array(NA,dim = c(U,tot))
+  b3=array(NA,dim = c(U,tot))
+  
+  p1=array(NA,dim = c(U,tot))
+  p2=array(NA,dim = c(U,tot))
+  p3=array(NA,dim = c(U,tot))
+  
+  
+  y110_1=array(NA,c(U,tot))
+  y110_2=array(NA,c(U,tot))
+  y110_3=array(NA,c(U,tot))
+  
+  y011_1=array(NA,c(U,tot))
+  y011_2=array(NA,c(U,tot))
+  y011_3=array(NA,c(U,tot))
+  
+  y100_1=array(NA,c(U,tot))
+  y100_2=array(NA,c(U,tot))
+  y100_3=array(NA,c(U,tot))
+  
+  y101_1=array(NA,c(U,tot))
+  y101_2=array(NA,c(U,tot))
+  y101_3=array(NA,c(U,tot))
+  
+  y010_1=array(NA,c(U,tot))
+  y010_2=array(NA,c(U,tot))
+  y010_3=array(NA,c(U,tot))
+  
+  y001_1=array(NA,c(U,tot))
+  y001_2=array(NA,c(U,tot))
+  y001_3=array(NA,c(U,tot))
+  
+  
+  
+  p_111=array(NA,c(U,tot))
+  p_110=array(NA,c(U,tot))
+  p_100=array(NA,c(U,tot))
+  p_001=array(NA,c(U,tot))
+  p_010=array(NA,c(U,tot))
+  p_101=array(NA,c(U,tot))
+  p_011=array(NA,c(U,tot))
+  p_000=array(NA,c(U,tot))
+  
+  m=array(NA,c(U,3))
+  n=array(NA,c(U,3))
+  
+  N_estimate=array(NA,c(U,tot))
+  
+  phi=array(NA,c(U,tot))
+  
+  ######################################
+  
+  # initial values
+  
+  alpha_1[r,1]=alpha01
+  alpha_2[r,1]=alpha02
+  alpha_3[r,1]=alpha03  
+  
+  alpha[r,1]=min((alpha_1[r,1]+alpha_2[r,1]+alpha_3[r,1]),1)
+  
+  delta_1[r,1]=delta01
+  delta_2[r,1]=delta02
+  delta_3[r,1]=delta03
+  
+  for(a in 1:U){
+    for(t in 1:3){
+      if(t==1){
+        b1[a,1]=rglogis(1, location = 0, scale = 1, shape = delta_1[r,1])
+        p1[a,1]=(1+exp(-b1[a,1]))^(-1)}
+      else if(t==2){
+        b2[a,1]=rglogis(1, location = 0, scale = 1, shape = delta_2[r,1])
+        p2[a,1]=(1+exp(-b2[a,1]))^(-1)}
+      else {
+        b3[a,1]=rglogis(1, location = 0, scale = 1, shape = delta_3[r,1])
+        p3[a,1]=(1+exp(-b3[a,1]))^(-1)}
+    }
+  }
+  
+  # for loop starts for Gibbs sampling
+  
+  for(h in 2:tot){
+    
+    alpha_vec_draw=rdirichlet(1,c(d1,d2,d3,d4))
+    
+    alpha_1[r,h]=alpha_vec_draw[1,1]
+    alpha_2[r,h]=alpha_vec_draw[1,2]
+    alpha_3[r,h]=alpha_vec_draw[1,3]  
+    alpha[r,h]=min((alpha_1[r,h]+alpha_2[r,h]+alpha_3[r,h]),1)
+    
+    d=array(NA,3)
+    for(t in 1:3) {
+      if(t == 1) {
+        d[t] = sum(log(1 + exp(-(b1[, h-1]))))
+        #delta_1[r,h] = rgamma(1, rate = d[t], shape = U)
+        delta_1[r,h] = rgamma(1, rate = lambda[t] + d[t], shape = U + gamma[t])  # Prior II
+      } else if(t == 2) {
+        d[t] = sum(log(1 + exp(-(b2[, h-1]))))
+        #delta_2[r,h] = rgamma(1, rate = d[t], shape = U)
+        delta_2[r,h] = rgamma(1, rate = lambda[t] + d[t], shape = U + gamma[t])  # Prior II
+      } else {
+        d[t] = sum(log(1 + exp(-(b3[, h-1]))))
+        #delta_3[r,h] = rgamma(1, rate = d[t], shape = U)
+        delta_3[r,h] = rgamma(1, rate = lambda[t] + d[t], shape = U + gamma[t])  # Prior II
+      }
+    }  # end of the t loop
+    
+    
+    for(i in 1:U){
+      
+      x_111=x_111_array[i]
+      x_110=x_110_array[i]
+      x_101=x_101_array[i]
+      x_011=x_011_array[i]
+      x_100=x_100_array[i]    
+      x_010=x_010_array[i] 
+      x_001=x_001_array[i]
+      
+      NN=x_111+x_110+x_101+x_011+x_100+x_010+x_001     #sum of seven observed cell
+      
+      x=array(0,3)
+      
+      x[1]=x_111+x_110+x_101+x_100
+      x[2]=x_111+x_110+x_001+x_010
+      x[3]=x_111+x_101+x_011+x_001
+      
+      
+      N_estimate[i,1]=N[i]
+      
+      
+      
+      p_111[i,h]=((1-alpha[r,h])*p1[i,h-1]*p2[i,h-1]*p3[i,h-1])
+      
+      p_110[i,h]=((1-alpha[r,h])*p1[i,h-1]*p2[i,h-1]*(1-p3[i,h-1]))+(alpha_2[r,h]*p1[i,h-1]*p2[i,h-1])+(alpha_3[r,h]*p1[i,h-1]*p2[i,h-1])
+      Q_110_1=((1-alpha[r,h])*p1[i,h-1]*p2[i,h-1]*(1-p3[i,h-1]))/p_110[i,h]
+      Q_110_2=alpha_2[r,h]*p1[i,h-1]*p2[i,h-1]/p_110[i,h]
+      Q_110_3=max(1-Q_110_1-Q_110_2,0)
+      prob_y110=c(Q_110_1,Q_110_2,Q_110_3)
+      y110_vec_draw=rmultinom(1,x_110,prob_y110)
+      
+      y110_1[i,h]=y110_vec_draw[1,1]
+      y110_2[i,h]=y110_vec_draw[2,1]           
+      y110_3[i,h]=x_110-y110_1[i,h]-y110_2[i,h]
+      
+      
+      p_011[i,h]=((1-alpha[r,h])*(1-p1[i,h-1])*p2[i,h-1]*p3[i,h-1])+(alpha_1[r,h]*(1-p1[i,h-1])*p3[i,h-1])+(alpha_3[r,h]*(1-p1[i,h-1])*p2[i,h-1])
+      Q_011_1=((1-alpha[r,h])*(1-p1[i,h-1])*p2[i,h-1]*p3[i,h-1])/p_011[i,h]
+      Q_011_2=(alpha_1[r,h]*(1-p1[i,h-1])*p3[i,h-1])/p_011[i,h]
+      Q_011_3=max(1-Q_011_1-Q_011_2,0)
+      prob_y011=c(Q_011_1,Q_011_2,Q_011_3)
+      y011_vec_draw=rmultinom(1,x_011,prob_y011)
+      
+      y011_1[i,h]=y011_vec_draw[1,1]
+      y011_2[i,h]=y011_vec_draw[2,1]
+      y011_3[i,h]=x_011-y011_1[i,h]-y011_2[i,h]
+      
+      
+      p_100[i,h]=((1-alpha[r,h])*p1[i,h-1]*(1-p2[i,h-1])*(1-p3[i,h-1]))+(alpha_1[r,h]*p1[i,h-1]*(1-p3[i,h-1]))+(alpha_3[r,h]*p1[i,h-1]*(1-p2[i,h-1]))
+      Q_100_1=((1-alpha[r,h])*p1[i,h-1]*(1-p2[i,h-1])*(1-p3[i,h-1]))/p_100[i,h]
+      Q_100_2=(alpha_1[r,h]*p1[i,h-1]*(1-p3[i,h-1]))/p_100[i,h]
+      Q_100_3=max(1-Q_100_1-Q_100_2,0)
+      prob_y100=c(Q_100_1,Q_100_2,Q_100_3)
+      y100_vec_draw=rmultinom(1,x_100,prob_y100)
+      
+      y100_1[i,h]=y100_vec_draw[1,1]
+      y100_2[i,h]=y100_vec_draw[2,1]
+      y100_3[i,h]=x_100-y100_1[i,h]-y100_2[i,h]
+      
+      
+      
+      p_101[i,h]=((1-alpha[r,h])*p1[i,h-1]*(1-p2[i,h-1])*p3[i,h-1])+(alpha_1[r,h]*p1[i,h-1]*p3[i,h-1])+(alpha_2[r,h]*p1[i,h-1]*(1-p2[i,h-1]))
+      Q_101_1=(1-alpha[r,h])*p1[i,h-1]*(1-p2[i,h-1])*p3[i,h-1]/p_101[i,h]
+      Q_101_2=(alpha_1[r,h]*p1[i,h-1]*p3[i,h-1])/p_101[i,h]
+      Q_101_3=max(1-Q_101_1-Q_101_2,0)
+      prob_y101=c(Q_101_1,Q_101_2,Q_101_3)
+      y101_vec_draw=rmultinom(1,x_101,prob_y101)
+      
+      y101_1[i,h]=y101_vec_draw[1,1]
+      y101_2[i,h]=y101_vec_draw[2,1]
+      y101_3[i,h]=x_101-y101_1[i,h]-y101_2[i,h]
+      
+      
+      p_010[i,h]=((1-alpha[r,h])*(1-p1[i,h-1])*p2[i,h-1]*(1-p3[i,h-1]))+(alpha_1[r,h]*(1-p1[i,h-1])*(1-p3[i,h-1]))+(alpha_2[r,h]*(1-p1[i,h-1])*p2[i,h-1])  
+      Q_010_1=((1-alpha[r,h])*(1-p1[i,h-1])*p2[i,h-1]*(1-p3[i,h-1]))/p_010[i,h]
+      Q_010_2=(alpha_1[r,h]*(1-p1[i,h-1])*(1-p3[i,h-1]))/p_010[i,h]
+      Q_010_3=max(1-Q_010_1-Q_010_2,0)
+      prob_y010=c(Q_010_1,Q_010_2,Q_010_3)
+      y010_vec_draw=rmultinom(1,x_010,prob_y010)
+      
+      y010_1[i,h]=y010_vec_draw[1,1]
+      y010_2[i,h]=y010_vec_draw[2,1]
+      y010_3[i,h]=x_010-y010_1[i,h]-y010_2[i,h]
+      
+      
+      
+      p_001[i,h]=((1-alpha[r,h])*(1-p1[i,h-1])*(1-p2[i,h-1])*p3[i,h-1])+(alpha_2[r,h]*(1-p1[i,h-1])*(1-p2[i,h-1]))+(alpha_3[r,h]*(1-p1[i,h-1])*(1-p2[i,h-1]))
+      Q_001_1=((1-alpha[r,h])*(1-p1[i,h-1])*(1-p2[i,h-1])*p3[i,h-1])/p_001[i,h]
+      Q_001_2=(alpha_2[r,h]*(1-p1[i,h-1])*(1-p2[i,h-1]))/p_001[i,h]
+      Q_001_3=max(1-Q_001_1-Q_001_2,0)
+      prob_y001=c(Q_001_1,Q_001_2,Q_001_3)
+      y001_vec_draw=rmultinom(1,x_001,prob_y001)
+      
+      y001_1[i,h]=y001_vec_draw[1,1]
+      y001_2[i,h]=y001_vec_draw[2,1]
+      y001_3[i,h]=x_001-y001_1[i,h]-y001_2[i,h]
+      
+      
+      
+      m[i,1]=x[1]
+      n[i,1]=(N_estimate[i,h-1]-x[1])
+      
+      m[i,2]=x_111+x_110+x_011-y011_2[i,h]+x_010-y010_2[i,h]
+      n[i,2]=N_estimate[i,h-1]-NN+x_001+x_100-y100_2[i,h]+x_101-y101_2[i,h]
+      
+      m[i,3]=x_111+y011_1[i,h]+y011_2[i,h]+y101_1[i,h]+y101_2[i,h]+y001_1[i,h]
+      n[i,3]=N_estimate[i,h-1]-NN+y110_1[i,h]+y100_1[i,h]+y100_2[i,h]+y010_1[i,h]+y010_2[i,h]
+      
+      b1[i,h]=log(rgamma(1,(m[i,1]+delta_1[r,h]),1))-log(rgamma(1,(n[i,1]+1),1))
+      b2[i,h]=log(rgamma(1,(m[i,2]+delta_2[r,h]),1))-log(rgamma(1,(n[i,2]+1),1))
+      b3[i,h]=log(rgamma(1,(m[i,3]+delta_3[r,h]),1))-log(rgamma(1,(n[i,3]+1),1))
+      
+      p1[i,h]=min((1+exp(-(b1[i,h])))^(-1),0.9999999)
+      p2[i,h]=min((1+exp(-(b2[i,h])))^(-1),0.9999999)
+      p3[i,h]=min((1+exp(-(b3[i,h])))^(-1),0.9999999)
+      
+      #Prior I
+      #w=rnbinom(1,NN,1-((1-alpha[r,h])*(1-p1[i,h])*(1-p2[i,h])*(1-p3[i,h])))
+      #N_estimate[i,h]=w+NN
+      
+      #Prior II
+      phi[i,h]=rbeta(1,N_estimate[i,h-1]+a_phi,TP[i]+b_phi-N_estimate[i,h-1])  
+      p_000[i,h]=(1-alpha[r,h])*(1-p1[i,h])*(1-p2[i,h])*(1-p3[i,h])
+      
+      w=rbinom(1,TP[i]-NN,((phi[i,h]*p_000[i,h])/(1-phi[i,h]+(phi[i,h]*p_000[i,h]))))
+      
+      N_estimate[i,h]=w+NN
+      
+    } # end of i loop
+    
+    y110_1_sum=sum(y110_1[,h])
+    y110_2_sum=sum(y110_2[,h])
+    y110_3_sum=sum(y110_3[,h])
+    
+    y011_1_sum=sum(y011_1[,h])
+    y011_2_sum=sum(y011_2[,h])
+    y011_3_sum=sum(y011_3[,h])
+    
+    y100_1_sum=sum(y100_1[,h])
+    y100_2_sum=sum(y100_2[,h])
+    y100_3_sum=sum(y100_3[,h])
+    
+    y101_1_sum=sum(y101_1[,h])
+    y101_2_sum=sum(y101_2[,h])
+    y101_3_sum=sum(y101_3[,h])
+    
+    y010_1_sum=sum(y010_1[,h])
+    y010_2_sum=sum(y010_2[,h])
+    y010_3_sum=sum(y010_3[,h])
+    
+    y001_1_sum=sum(y001_1[,h])
+    y001_2_sum=sum(y001_2[,h])
+    y001_3_sum=sum(y001_3[,h])
+    
+    
+    x_111_sum=sum(x_111_array)
+    x_110_sum=sum(x_110_array)
+    x_011_sum=sum(x_011_array)
+    x_100_sum=sum(x_100_array)
+    x_101_sum=sum(x_101_array)
+    x_010_sum=sum(x_010_array)
+    x_001_sum=sum(x_001_array)
+    
+    NN_sum=x_111_sum+x_110_sum+x_011_sum+x_100_sum+x_101_sum+x_010_sum+x_001_sum
+    
+    N_estimate_sum=sum(N_estimate[,h])
+    
+    d1=y011_2_sum+y100_2_sum+y101_2_sum+y010_2_sum+beta[1]
+    d2=y110_2_sum+x_101_sum-y101_1_sum-y101_2_sum+x_010_sum-y010_1_sum-y010_2_sum+y001_2_sum+beta[2]
+    d3=x_110_sum-y110_1_sum-y110_2_sum+x_011_sum-y011_1_sum-y011_2_sum+x_100_sum-y100_1_sum-y100_2_sum+x_001_sum-y001_1_sum-y001_2_sum+beta[3]
+    d4=x_111_sum+(y110_1_sum+y011_1_sum+y100_1_sum+y101_1_sum+y010_1_sum+y001_1_sum)+(N_estimate_sum-NN_sum)+beta[4]
+    
+    
+  } # end of h loop
+  
+  for(a in 1:U){
+    
+    M=N_estimate[a,((tot/2)+1):tot]
+    
+    
+    N_repli_mean_estimates[a,r]=mean(M)
+    N_repli_median_estimates[a,r]=median(M)
+    
+    Interval_hpd=hdi(M, credMass=0.95) #  95% highest posterior credible interval
+    Interval_quant=quantile(M,  probs = c(2.5,97.5)/100)  #  95% CI based on quantiles of posterior density
+    
+    CI_hpd_N_1[a,r]=Interval_hpd[1] # lower limit of hpd
+    CI_hpd_N_2[a,r]=Interval_hpd[2]  # upper limit of hpd
+    CI_hpd_N_length[a,r]=(Interval_hpd[2]-Interval_hpd[1])   # length of hpd CI
+    
+    
+    CI_quant_N_1[a,r]=Interval_quant[1]  # lower limit  of quantile method
+    CI_quant_N_2[a,r]=Interval_quant[2]  # upper limit  of quantile method
+    CI_quant_N_length[a,r]=(Interval_quant[2]-Interval_quant[1])  # length of quantile CI
+    
+  } # end of a loop
+  
+  alpha1[r]=median(alpha_1[r,((tot/2)+1):tot])
+  alpha2[r]=median(alpha_2[r,((tot/2)+1):tot])
+  alpha3[r]=median(alpha_3[r,((tot/2)+1):tot])
+  alpha_ind[r]=median(alpha[r,((tot/2)+1):tot])
+  
+  delta1[r]=median(delta_1[r,((tot/2)+1):tot])
+  delta2[r]=median(delta_2[r,((tot/2)+1):tot])
+  delta3[r]=median(delta_3[r,((tot/2)+1):tot])
+  
+  print(r)
+  
+} # end of r loop
+
+######################################################################################
+
+for(t in 1:U){
+  
+  N_post_mean[t]=mean(N_repli_mean_estimates[t,])
+  N_post_sd_mean_estimates[t]=sd(N_repli_mean_estimates[t,])
+  rmse_N_hat_mean_estimates[t]=sqrt(mean((N_repli_mean_estimates[t,]-N[t])^2))
+  
+  
+  
+  N_post_median[t]=mean(N_repli_median_estimates[t,])
+  N_post_sd_median_estimates[t]=sd(N_repli_median_estimates[t,])
+  MD_N_hat_median_estimates[t]=mean(abs(N_repli_median_estimates[t,]-N[t]))
+  
+  
+  coverage_hpd[t]=100*mean(ifelse(CI_hpd_N_1[t,]<=N[t] & N[t]<CI_hpd_N_2[t,],1,0))
+  coverage_quant[t]=100*mean(ifelse(CI_quant_N_1[t,]<=N[t] & N[t]<CI_quant_N_2[t,],1,0))
+  
+  LCL_hpd_N_hat[t]=mean(CI_hpd_N_1[t,])
+  UCL_hpd_N_hat[t]=mean(CI_hpd_N_2[t,])
+  
+  LCL_quant_N_hat[t]=mean(CI_quant_N_1[t,])
+  UCL_quant_N_hat[t]=mean(CI_quant_N_2[t,])
+  
+  
+} # end of t loop
+
+alpha_1_estimate=mean(alpha1)
+alpha_2_estimate=mean(alpha2)
+alpha_3_estimate=mean(alpha3)
+alpha_estimate=mean(alpha_ind)
+
+delta_1_estimate=mean(delta1)
+delta_2_estimate=mean(delta2)
+delta_3_estimate=mean(delta3)
+
+
+
+###### Results ###################
+
+N_post_mean
+N_post_median
+N_post_sd_mean_estimates
+N_post_sd_median_estimates
+rmse_N_hat_mean_estimates/N
+MD_N_hat_median_estimates/N
+
+LCL_hpd_N_hat
+UCL_hpd_N_hat
+coverage_hpd
+mean(CI_hpd_N_length)
+
+LCL_quant_N_hat
+UCL_quant_N_hat
+coverage_quant
+mean(CI_quant_N_length)
+
+alpha_1_estimate
+alpha_2_estimate
+alpha_3_estimate
+alpha_estimate
+
+delta_1_estimate
+delta_2_estimate
+delta_3_estimate
+
+plot(alpha_1[r,((tot*0.1)+1):tot], ty='l')
+
+th=10
+lw=tot*0.1
+up=tot
+
+
+dev.new()
+par(mfrow = c(2, 3))
+
+plot(alpha_1[r,seq(lw,up, th)], ty='l')
+plot(alpha_2[r,seq(lw,up, th)], ty='l')
+plot(alpha_3[r,seq(lw,up, th)], ty='l')
+
+plot(delta_1[r,seq(lw,up, th)], ty='l')
+plot(delta_2[r,seq(lw,up, th)], ty='l')
+plot(delta_3[r,seq(lw,up, th)], ty='l')
+
+dev.new()
+par(mfrow = c(4, 4))
+
+for (i in 1:U) {
+  
+plot(N_estimate[i,seq(lw,up, th)], ty='l')
+  
+}
+
+dev.new()
+par(mfrow = c(4, 4))
+
+
+for (i in 1:U) {
+  
+plot(phi[i,seq(lw,up, th)], ty='l')
+  
+}
+
