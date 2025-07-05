@@ -426,17 +426,7 @@ mtext(expression(p[3]), side = 2, line = 0.5, outer = TRUE, cex = 2, font = 2)
 
 
 
-par(mgp=c(2, 0.5, 0))
-plot(t,alpha_1[seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(beta[1])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
-plot(t,alpha_2[seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(beta[2])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
-plot(t,alpha_3[seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(beta[3])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
-plot(t,alpha[seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(beta[0])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
 
-
-par(mgp=c(2, 0.5, 0))
-plot(t,delta[1,seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(delta[1])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
-plot(t,delta[2,seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(delta[2])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
-plot(t,delta[3,seq(lw,up, th)],xlab="Iteration",ylab=bquote(bold(delta[3])),type="l", cex.lab = 2, font.lab = 2, xaxt = 'n', yaxt = 'n')
 
 
 par(mfrow=c(2,3),mgp=c(0.5, 0, 0), oma = c(3, 1, 1, 1), mar = c(2, 2.5, 1, 0.5))
