@@ -582,7 +582,7 @@ caxis = 2
 plot(w, Prob2(w), type="h", col="blue",lwd=2, xlim=c(0,0.1), ylim=c(0,1), xlab=expression(~ lambda), ylab=expression(P(beta[2]>lambda ~ "|" ~  data)), cex.lab=clab,cex.axis=caxis)
 #title(sub="(b)")
 
-w=seq(0.001,0.1,0.001)
+w=seq(0,0.01,0.001)
 
 Prob3=function(v) {
   x3=alpha_3[t]
@@ -595,10 +595,10 @@ par(mar = c(5, 7, 4, 2) + 0.1)
 clab = 2
 caxis = 2
 
-plot(w, Prob3(w), type="h", col="blue",lwd=2, xlim=c(0,0.015), ylim=c(0,1), xlab=expression(~ lambda), ylab=expression(P(beta[3]>lambda ~ "|" ~  data)) ,cex.lab=clab,cex.axis=caxis)
+plot(w, Prob3(w), type="h", col="blue",lwd=2, xlim=c(0,0.011), ylim=c(0,1), xlab=expression(~ lambda), ylab=expression(P(beta[3]>lambda ~ "|" ~  data)) ,cex.lab=clab,cex.axis=caxis)
 #title(sub="(c)")
 
-w=seq(0.00001,0.1,0.0001)
+w=seq(0,0.1,0.001)
 par(mfrow=c(1,1))
 
 Prob=function(v) {
