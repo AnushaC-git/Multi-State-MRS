@@ -2,7 +2,7 @@
 
 This repository contains the code and data files for executing the data analysis.
 
-The data required for our data analysis is divided into two categories: (a) Roamer_data  (b) Seater_data. Each of these contains TRS datasets for 16 administrative regions of Ghana.
+The data required for our data analysis is divided into two categories: (a) Roamer_Data  (b) Seater_Data. Each of these contains TRS datasets for 16 administrative regions of Ghana.
 
 1.FSW_HIV Code_Jeffrey(Roamer): Data Analysis code under Prior I for Roamer FSW.
 2.FSW_HIV Code_Binomial(Roamer): Data Analysis code under Prior II for Roamer FSW.
