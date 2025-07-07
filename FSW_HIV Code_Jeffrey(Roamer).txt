@@ -67,7 +67,7 @@ gamma[3]=delta_3*lambda[3]
 a_phi=1 # Hyper parameter for phi
 b_phi=1
 
-TP=data[,12]  # Female population size(15-49 years)
+TP=data[,12]  # Female population size (15-49 years)
 
 
 beta=array(0.5,4) # Jeffrey's Dirichlet prior
@@ -458,7 +458,7 @@ for(i in 1:nrow(data)){
   Interval_hpd=hdi(M, credMass=0.95) #  95% highest posterior credible interval
   Interval_quant=quantile(M,  probs = c(2.5,97.5)/100)  #  95% CI based on quantiles of posterior density
   
-  CI_hpd_N_1[i]=Interval_hpd[1]  # Lower limita of hpd
+  CI_hpd_N_1[i]=Interval_hpd[1]  # Lower limit of hpd
   CI_hpd_N_2[i]=Interval_hpd[2]  # Upper limit of hpd
   CI_hpd_N_length=Interval_hpd[2]-Interval_hpd[1]   # Length of hpd CI
   
