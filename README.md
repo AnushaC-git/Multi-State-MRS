@@ -2,7 +2,7 @@
 
 This repository contains the code and data files for executing the data analysis.
 
-The data required for our data analysis is divided into two categories: (a) Roamer  (b) Seater. These datasets contain TRS datasets for 16 administrative regions of Ghana and are stored as csv files named 'Roamer_Data.csv' and 'Seater_Data.csv'. These must be read in the beginning of the data analysis code by updating their file path accordingly.
+The data required for our data analysis is divided into two categories: (a) Roamer  (b) Seater. These datasets contain TRS data for 16 administrative regions of Ghana and are stored as csv files named 'Roamer_Data.csv' and 'Seater_Data.csv'. These must be read in the beginning of the data analysis code by updating their file path accordingly.
 
 The data analysis codes are as follows:
 
