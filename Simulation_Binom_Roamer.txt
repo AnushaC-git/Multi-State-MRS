@@ -13,7 +13,7 @@ library(coda)
 
 
 
-Repli=500
+Repli=500    # No. of replications
 tot=100000   # no. of iteration in Gibbs
 
 
@@ -21,7 +21,7 @@ tot=100000   # no. of iteration in Gibbs
 
 N=c(394,2845,1858,718,2852,2336,7531,254,1004,601,223,692,357,760,2697,182)
 
-U=length(N)  # no of states
+U=length(N)  # No. of states
 
 alpha01=0.00010
 alpha02=0.05354
@@ -39,14 +39,14 @@ lambda[2]=delta02/100
 lambda[3]=delta03/100
 
 gamma=array(0,3) 
-gamma[1]=delta01*lambda[1]   # to maintain the prior mean as delta_1
+gamma[1]=delta01*lambda[1]   # To maintain the prior mean as delta_1
 gamma[2]=delta02*lambda[2]
 gamma[3]=delta03*lambda[3]
 
-a_phi=1 # hyper parameter for phi
+a_phi=1 # Hyper parameter for phi
 b_phi=1
 
-TP=c(571929,637629,1487470,459072,811662,1559605,245102,153596,293073,284288,182359,463527,141398,140030,300157,204319)  # True population of Females(15-49)
+TP=c(571929,637629,1487470,459072,811662,1559605,245102,153596,293073,284288,182359,463527,141398,140030,300157,204319)  # Female population size (15-49 years)
 
 
 #####################
@@ -130,7 +130,7 @@ delta_3=array(NA,c(Repli,tot))
 
 N_estimate_repli=array(NA,c(Repli,tot))
 
-beta=array(0.5,4) # beta parameters are 0.5 refer Jeffrey's Dirichlet prior
+beta=array(0.5,4) # Jeffrey's Dirichlet prior
 
 
 
@@ -175,7 +175,7 @@ for(r in 1:Repli){
           
       
       
-    } # end of 'j' loop
+    } # End of 'j' loop
 
       x_111_array[s]=sum(D[,1]*D[,2]*D[,3])
       x_110_array[s]=sum(D[,1]*D[,2]*(1-D[,3]))
@@ -185,13 +185,9 @@ for(r in 1:Repli){
       x_010_array[s]=sum((1-D[,1])*D[,2]*(1-D[,3]))
       x_001_array[s]=sum((1-D[,1])*(1-D[,2])*D[,3])
     
-  } # end of s loop
+  } # End of s loop
   
-  ########## Bayesian estimate of TBM-H ######################################
   
-  str=function(x) {
-    x*log(x)-x 
-  }
   
   ######## Initial Value ##############################
   
@@ -248,7 +244,7 @@ for(r in 1:Repli){
   
   ######################################
   
-  # initial values
+ 
   
   alpha_1[r,1]=alpha01
   alpha_2[r,1]=alpha02
@@ -274,7 +270,7 @@ for(r in 1:Repli){
     }
   }
   
-  # for loop starts for Gibbs sampling
+  # For loop starts for Gibbs sampling
   
   for(h in 2:tot){
     
@@ -300,7 +296,7 @@ for(r in 1:Repli){
         #delta_3[r,h] = rgamma(1, rate = d[t], shape = U)
         delta_3[r,h] = rgamma(1, rate = lambda[t] + d[t], shape = U + gamma[t])  # Prior II
       }
-    }  # end of the t loop
+    }  # End of the t loop
     
     
     for(i in 1:U){
@@ -313,7 +309,7 @@ for(r in 1:Repli){
       x_010=x_010_array[i] 
       x_001=x_001_array[i]
       
-      NN=x_111+x_110+x_101+x_011+x_100+x_010+x_001     #sum of seven observed cell
+      NN=x_111+x_110+x_101+x_011+x_100+x_010+x_001     # Sum of seven observed cell
       
       x=array(0,3)
       
@@ -432,7 +428,7 @@ for(r in 1:Repli){
       
       N_estimate[i,h]=w+NN
       
-    } # end of i loop
+    } # End of i loop
     
     y110_1_sum=sum(y110_1[,h])
     y110_2_sum=sum(y110_2[,h])
@@ -477,7 +473,7 @@ for(r in 1:Repli){
     d4=x_111_sum+(y110_1_sum+y011_1_sum+y100_1_sum+y101_1_sum+y010_1_sum+y001_1_sum)+(N_estimate_sum-NN_sum)+beta[4]
     
     
-  } # end of h loop
+  } # End of h loop
   
   for(a in 1:U){
     
@@ -490,16 +486,16 @@ for(r in 1:Repli){
     Interval_hpd=hdi(M, credMass=0.95) #  95% highest posterior credible interval
     Interval_quant=quantile(M,  probs = c(2.5,97.5)/100)  #  95% CI based on quantiles of posterior density
     
-    CI_hpd_N_1[a,r]=Interval_hpd[1] # lower limit of hpd
-    CI_hpd_N_2[a,r]=Interval_hpd[2]  # upper limit of hpd
-    CI_hpd_N_length[a,r]=(Interval_hpd[2]-Interval_hpd[1])   # length of hpd CI
+    CI_hpd_N_1[a,r]=Interval_hpd[1] # Lower limit of hpd
+    CI_hpd_N_2[a,r]=Interval_hpd[2]  # Upper limit of hpd
+    CI_hpd_N_length[a,r]=(Interval_hpd[2]-Interval_hpd[1])   # Length of hpd CI
     
     
-    CI_quant_N_1[a,r]=Interval_quant[1]  # lower limit  of quantile method
-    CI_quant_N_2[a,r]=Interval_quant[2]  # upper limit  of quantile method
-    CI_quant_N_length[a,r]=(Interval_quant[2]-Interval_quant[1])  # length of quantile CI
+    CI_quant_N_1[a,r]=Interval_quant[1]  # Lower limit  of quantile method
+    CI_quant_N_2[a,r]=Interval_quant[2]  # Upper limit  of quantile method
+    CI_quant_N_length[a,r]=(Interval_quant[2]-Interval_quant[1])  # Length of quantile CI
     
-  } # end of a loop
+  } # End of a loop
   
   alpha1[r]=median(alpha_1[r,((tot/2)+1):tot])
   alpha2[r]=median(alpha_2[r,((tot/2)+1):tot])
@@ -512,7 +508,7 @@ for(r in 1:Repli){
   
   print(r)
   
-} # end of r loop
+} # End of r loop
 
 ######################################################################################
 
@@ -539,7 +535,7 @@ for(t in 1:U){
   UCL_quant_N_hat[t]=mean(CI_quant_N_2[t,])
   
   
-} # end of t loop
+} # End of t loop
 
 alpha_1_estimate=mean(alpha1)
 alpha_2_estimate=mean(alpha2)
