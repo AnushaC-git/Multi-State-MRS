@@ -14,7 +14,7 @@ library(coda)
 
 
 Repli=500    # No. of replications
-tot=100000   # No. of iteration in Gibbs
+tot=100000   # No. of iteration in Gibbs Sampling
 
 
 ##########  Parameter Specification ##########
