@@ -452,7 +452,7 @@ est_p_..1=array(NA,nrow(data))
 
 
 for(i in 1:nrow(data)){
-  M=N_estimate[i,seq(lw,up, th)]   # Posterior sample, last half samples
+  M=N_estimate[i,seq(lw,up, th)]   # Posterior sample
   Medi[i]=median(M)                  # Posterior median, estimate of N
   MD_Medi[i]=sum(abs(M-Medi[i]))/length(M)
   
