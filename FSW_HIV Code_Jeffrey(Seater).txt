@@ -24,14 +24,10 @@ x_010_array=data[,8]
 x_001_array=data[,9] 
 
 
-tot=500000    # no. of iteration in Gibbs 
+tot=500000    # No. of iteration in Gibbs Sampling
 
 
-########## Bayesian estimate of TBM-H ######################################
 
-str=function(x) {
-  x*log(x)-x 
-}
 
 ######## Initial Value ##############################
 
@@ -65,17 +61,17 @@ lambda[2]=delta_2/100
 lambda[3]=delta_3/100
 
 gamma=array(0,3) 
-gamma[1]=delta_1*lambda[1]   # to maintain the prior mean as delta_1
+gamma[1]=delta_1*lambda[1]   # To maintain the prior mean as delta_1
 gamma[2]=delta_2*lambda[2]
 gamma[3]=delta_3*lambda[3]
 
-a_phi=1 # hyper parameter for phi
+a_phi=1 # Hyper parameter for phi
 b_phi=1
 
-TP=data[,12]  # True population of Females(15-49)
+TP=data[,12]  # Female population size (15-49 years)
 
 
-beta=array(0.5,4) # beta parameters are 0.5 refer Jeffrey's Dirichlet prior
+beta=array(0.5,4) # Jeffrey's Dirichlet prior
 
 
 
@@ -136,7 +132,7 @@ CI_hpd_N_2=array(NA,dim = nrow(data))
 
 ######################################
 
-# initial values
+
 
 alpha_1[1]=alpha1
 alpha_2[1]=alpha2
@@ -162,7 +158,7 @@ for(a in 1:nrow(data)){
   }
 }
 
-# for loop starts for Gibbs sampling
+# For loop starts for Gibbs sampling
 
 for(h in 2:tot){
   
@@ -188,7 +184,7 @@ for(h in 2:tot){
       delta[t, h] = rgamma(1, rate = d[t], shape = nrow(data))
       #delta[t, h] = rgamma(1, rate = lambda[t] + d[t], shape = nrow(data) + gamma[t]) # Prior II
     }
-  } # end of the t loop
+  } # End of the t loop
   
   
   for(i in 1:nrow(data)){
@@ -201,7 +197,7 @@ for(h in 2:tot){
     x_010=data[i,8] 
     x_001=data[i,9] 
     
-    NN=x_111+x_110+x_101+x_011+x_100+x_010+x_001     #sum of seven observed cell
+    NN=x_111+x_110+x_101+x_011+x_100+x_010+x_001     # Sum of seven observed cell
     
     x=array(0,3)
     
@@ -322,7 +318,7 @@ for(h in 2:tot){
     
     #N_estimate[i,h]=w+NN
     
-  } # end of i loop
+  } # End of i loop
   
   
   y110_1_sum=sum(y110_1[,h])
@@ -368,7 +364,7 @@ for(h in 2:tot){
   d4=x_111_sum+(y110_1_sum+y011_1_sum+y100_1_sum+y101_1_sum+y010_1_sum+y001_1_sum)+(N_estimate_sum-NN_sum)+beta[4]
   
   
-} # end of h loop
+} # End of h loop
 
 
 ###################  Plots & Diagnostics #######################
@@ -456,16 +452,16 @@ est_p_..1=array(NA,nrow(data))
 
 
 for(i in 1:nrow(data)){
-  M=N_estimate[i,seq(lw,up, th)]   # posterior sample, last half samples
-  Medi[i]=median(M)                  # posterior median, estimate of N
+  M=N_estimate[i,seq(lw,up, th)]   # Posterior sample, last half samples
+  Medi[i]=median(M)                  # Posterior median, estimate of N
   MD_Medi[i]=sum(abs(M-Medi[i]))/length(M)
   
   Interval_hpd=hdi(M, credMass=0.95) #  95% highest posterior credible interval
   Interval_quant=quantile(M,  probs = c(2.5,97.5)/100)  #  95% CI based on quantiles of posterior density
   
-  CI_hpd_N_1[i]=Interval_hpd[1]  # lower limita of hpd
-  CI_hpd_N_2[i]=Interval_hpd[2]  # upper limit of hpd
-  CI_hpd_N_length=Interval_hpd[2]-Interval_hpd[1]   # length of hpd CI
+  CI_hpd_N_1[i]=Interval_hpd[1]  # Lower limit of hpd
+  CI_hpd_N_2[i]=Interval_hpd[2]  # Upper limit of hpd
+  CI_hpd_N_length=Interval_hpd[2]-Interval_hpd[1]   # Length of hpd CI
   
   p_1..[i,]=p_111[i,seq(lw,up, th)]+p_110[i,seq(lw,up, th)]+p_101[i,seq(lw,up, th)]+p_100[i,seq(lw,up, th)]
   p_.1.[i,]=p_111[i,seq(lw,up, th)]+p_110[i,seq(lw,up, th)]+p_011[i,seq(lw,up, th)]+p_010[i,seq(lw,up, th)]
@@ -501,19 +497,18 @@ alpha_estimate=alpha_1_estimate+alpha_2_estimate+alpha_3_estimate
 
 N_hat_TBMH=Medi                               # Median Estimate of the population size 
 MD_Median=MD_Medi                                       # Mean deviation about median
-RMDM_N_hat_TBMH=MD_Median/N_hat_TBMH              # RMDM of the estimate
+
 hpd_lower_TBMH=CI_hpd_N_1   # Lower limit of the 95% confidence interval based on hpd
 hpd_upper_TBMH=CI_hpd_N_2   # Upper limit of the 95% confidence interval based on hpd
 
 
 
-######## Results #################################
 
 
 
 N_hat_TBMH                  
 MD_Median
-RMDM_N_hat_TBMH 
+
 
 hpd_lower_TBMH   # Lower limit of the 95% confidence interval based on hpd
 hpd_upper_TBMH   # Upper limit of the 95% confidence interval based on hpd
