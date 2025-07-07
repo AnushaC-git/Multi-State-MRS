@@ -14,7 +14,7 @@ library(coda)
 
 
 Repli=500    # No. of replications
-tot=100000   # no. of iteration in Gibbs
+tot=100000   # no. of iteration in Gibbs Sampling
 
 
 ##########  Parameter Specification ##########
@@ -175,7 +175,7 @@ for(r in 1:Repli){
           
       
       
-    } # End of 'j' loop
+    } # End of j loop
 
       x_111_array[s]=sum(D[,1]*D[,2]*D[,3])
       x_110_array[s]=sum(D[,1]*D[,2]*(1-D[,3]))
