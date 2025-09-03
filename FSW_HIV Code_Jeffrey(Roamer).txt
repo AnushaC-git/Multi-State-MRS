@@ -1,13 +1,7 @@
 rm(list=ls())
-library(invgamma)
 library(MCMCpack)
-library(AR)
-library(MASS)
-library(gamlss.dist)
-library(ramify)
 library(glogis)
 library(HDInterval)
-library(coda)
 
 
 ############# Data #######################
@@ -601,5 +595,6 @@ clab = 2
 caxis = 1.8
 
 plot(w, Prob(w), type="h", col="blue",lwd=2, xlim=c(0,0.11), ylim=c(0,1), xlab=expression(~ lambda), ylab=expression(P(beta[0]>lambda ~ "|" ~  data)), cex.lab=clab,cex.axis=caxis)
+
 
 
