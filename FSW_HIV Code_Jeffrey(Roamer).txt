@@ -536,6 +536,7 @@ th=10
 lw=tot*0.1
 up=tot
 t=seq(lw,up,th)
+dev.new()
 w=seq(0.0001,0.01,0.0002)
 par(mfrow=c(1,1))
 
@@ -600,4 +601,5 @@ clab = 2
 caxis = 1.8
 
 plot(w, Prob(w), type="h", col="blue",lwd=2, xlim=c(0,0.11), ylim=c(0,1), xlab=expression(~ lambda), ylab=expression(P(beta[0]>lambda ~ "|" ~  data)), cex.lab=clab,cex.axis=caxis)
+
 
